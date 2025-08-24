@@ -852,6 +852,34 @@ func writeTemplateAware(assign Assignment, maps []RoleMap, dates []time.Time,
 	}
 	defer f.Close()
 	sheet := "Jadwal Bulanan"
+
+	// --- Fill header placeholders per tanggal (kolom) ---
+	for i, d := range dates {
+		col := 2 + i // B=2
+		// Coba ganti pada baris 1..6 (umumnya header di baris atas)
+		for r := 1; r <= 6; r++ {
+			addr := cell(col, r)
+			val, _ := f.GetCellValue(sheet, addr)
+			if strings.Contains(val, "{") {
+				newv := replacePlaceholders(val, d, loc)
+				if newv != val {
+					_ = f.SetCellStr(sheet, addr, newv)
+				}
+			}
+		}
+	}
+
+	// --- Hide unused columns (assume 5 slots: B..F) ---
+	totalSlots := 5
+	if len(dates) < totalSlots {
+		for i := len(dates); i < totalSlots; i++ {
+			col := 2 + i
+			colName, _ := excelize.ColumnNumberToName(col)
+			_ = f.SetColVisible(sheet, colName, false)
+		}
+	}
+
+	// --- Write assignment values ---
 	for i, d := range dates {
 		col := 2 + i
 		// 07.00
@@ -1034,6 +1062,42 @@ func monthNameID(m int) string {
 		return names[m]
 	}
 	return "?"
+}
+
+// New: day name (ID)
+func dayNameID(wd time.Weekday) string {
+	switch wd {
+	case time.Monday:
+		return "Senin"
+	case time.Tuesday:
+		return "Selasa"
+	case time.Wednesday:
+		return "Rabu"
+	case time.Thursday:
+		return "Kamis"
+	case time.Friday:
+		return "Jumat"
+	case time.Saturday:
+		return "Sabtu"
+	default:
+		return "Minggu"
+	}
+}
+
+// New: placeholder replacer
+func replacePlaceholders(s string, d time.Time, loc *time.Location) string {
+	day := dayNameID(d.Weekday())
+	dd := fmt.Sprintf("%02d", d.Day())
+	mon := monthNameID(int(d.Month()))
+	yyyy := fmt.Sprintf("%04d", d.Year())
+	out := s
+	out = strings.ReplaceAll(out, "{Day}", day)
+	out = strings.ReplaceAll(out, "{dd}", dd)
+	// treat {MMM} and {MMMM} as full month name in ID
+	out = strings.ReplaceAll(out, "{MMM}", mon)
+	out = strings.ReplaceAll(out, "{MMMM}", mon)
+	out = strings.ReplaceAll(out, "{yyyy}", yyyy)
+	return out
 }
 
 // ==================== Pattern & Role Helpers ====================
