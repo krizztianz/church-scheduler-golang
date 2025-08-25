@@ -37,9 +37,9 @@ type Assignment = map[time.Time]map[string]map[string][]string // date -> servic
 // ==================== Flags ====================
 
 var (
-	bulanFlag     = flag.String("bulan", "", "Bulan (1-12 atau nama Indonesia, wajib)")
-	tahunFlag     = flag.Int("tahun", 0, "Tahun (wajib)")
-	tanggalFlag   = flag.Int("tgl", 0, "Tanggal (opsional)")
+	bulanFlag   = flag.String("bulan", "", "Bulan (1-12 atau nama Indonesia, wajib)")
+	tahunFlag   = flag.Int("tahun", 0, "Tahun (wajib)")
+	tanggalFlag = flag.Int("tgl", 0, "Tanggal (opsional)")
 
 	maxLektorFlag = flag.Int("maxLektor", 2, "Jumlah Lektor per ibadah (default 2, maks 4)")
 	maxProkantor  = flag.Int("maxProkantor", 2, "Jumlah Prokantor (default 2, maks 3)")
@@ -551,7 +551,10 @@ func generate(assign Assignment, dates []time.Time, people []Person, maps []Role
 			// ======================================================
 			// 3) Lektor / Prokantor / Pemusik (ketiga)
 			// ======================================================
-			for _, g := range []struct{ key string; limit int }{
+			for _, g := range []struct {
+				key   string
+				limit int
+			}{
 				{"lektor", maxLektor}, {"prokantor", maxPro}, {"pemusik", maxMus},
 			} {
 				rows := grouped[g.key]
@@ -936,7 +939,13 @@ func rowForRole(f *excelize.File, sheet, role string, umum bool) int {
 
 func normKey(s string) string { return strings.ToLower(strings.TrimSpace(s)) }
 
-func exeDir() (string, error) { p, err := os.Executable(); if err != nil { return "", err }; return filepath.Dir(p), nil }
+func exeDir() (string, error) {
+	p, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Dir(p), nil
+}
 
 func getDocumentsDir() string {
 	home, _ := os.UserHomeDir()
@@ -946,7 +955,13 @@ func getDocumentsDir() string {
 	return filepath.Join(home, "Documents")
 }
 
-func copyFile(src, dst string) error { b, err := os.ReadFile(src); if err != nil { return err }; return os.WriteFile(dst, b, 0o644) }
+func copyFile(src, dst string) error {
+	b, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(dst, b, 0o644)
+}
 
 func findSheet(f *excelize.File, names []string) string {
 	all := f.GetSheetList()
@@ -983,9 +998,30 @@ func findHeader(idx map[string]int, cands []string) int {
 
 func atoiSafe(s string) int { var x int; fmt.Sscanf(strings.TrimSpace(s), "%d", &x); return x }
 
-func clamp(v, lo, hi int) int { if v < lo { return lo }; if v > hi { return hi }; return v }
+func clamp(v, lo, hi int) int {
+	if v < lo {
+		return lo
+	}
+	if v > hi {
+		return hi
+	}
+	return v
+}
 
-func mustLoc(name string) *time.Location { loc, _ := time.LoadLocation(name); return loc }
+func mustLoc(name string) *time.Location {
+	if name == "" {
+		return time.Local
+	}
+	if loc, err := time.LoadLocation(name); err == nil && loc != nil {
+		return loc
+	}
+	// Fallback for Asia/Jakarta if tzdata/zoneinfo is missing
+	if strings.EqualFold(name, "Asia/Jakarta") {
+		return time.FixedZone("WIB", 7*3600) // UTC+7, no DST
+	}
+	// Last resort: local time (non-nil)
+	return time.Local
+}
 
 func safeDate(year, month, day int, loc *time.Location) (time.Time, error) {
 	d := time.Date(year, time.Month(month), day, 0, 0, 0, 0, loc)
@@ -1005,7 +1041,11 @@ func allSundays(year, month int, loc *time.Location) []time.Time {
 	return res
 }
 
-func sameDay(a, b time.Time) bool { ay, am, ad := a.Date(); by, bm, bd := b.Date(); return ay == by && am == bm && ad == bd }
+func sameDay(a, b time.Time) bool {
+	ay, am, ad := a.Date()
+	by, bm, bd := b.Date()
+	return ay == by && am == bm && ad == bd
+}
 
 func cell(col, row int) string { ref, _ := excelize.CoordinatesToCellName(col, row); return ref }
 
