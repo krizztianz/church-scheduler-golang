@@ -862,7 +862,7 @@ func writeTemplateAware(assign Assignment, maps []RoleMap, dates []time.Time,
 	// --- Fill header placeholders per tanggal (kolom) ---
 	for i, d := range dates {
 		col := 2 + i // B=2
-		// Cakup header 07.00 & 10.00 (default 12 baris; bisa diubah dengan -headerRows)
+		// Cakup header 07.00 & 10.00 (default 30 baris; bisa diubah dengan -headerRows)
 		for r := 1; r <= *headerRowsFlag; r++ {
 			addr := cell(col, r)
 			val, _ := f.GetCellValue(sheet, addr)
