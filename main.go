@@ -49,6 +49,8 @@ var (
 	outdirFlag   = flag.String("outdir", "", "Folder output")
 	templateName = flag.String("template", "TemplateOutput.xlsx", "Nama template")
 
+	// Tambahan: jumlah baris header yang discan placeholder-nya
+	headerRowsFlag = flag.Int("headerRows", 30, "Jumlah baris atas untuk scan placeholder header (default 30)")
 	masterOverride  = flag.String("master", "", "Path Master.xlsx khusus")
 	forceMasterCopy = flag.Bool("forceMasterCopy", false, "Paksa salin Master.xlsx")
 
@@ -182,6 +184,7 @@ func run() error {
 	if isVerbose() {
 		fmt.Printf("Flags: strictComposition=%v, noRelaxB2B=%v, seed=%d\n", *strictCompositionFlag, *noRelaxB2BFlag, *seedFlag)
 		fmt.Printf("Limits: Lektor=%d Prokantor=%d Pemusik=%d\n", maxLektor, maxPro, maxMus)
+		fmt.Printf("HeaderRows: %d\n", *headerRowsFlag)
 		fmt.Printf("Pattern: Kolektan=%s (P:%d J:%d) | P.Jemaat=%s (P:%d J:%d)\n",
 			*kolektanPatternFlag, kPen, kJem, *pJemaatPatternFlag, pPen, pJem)
 	}
@@ -859,8 +862,8 @@ func writeTemplateAware(assign Assignment, maps []RoleMap, dates []time.Time,
 	// --- Fill header placeholders per tanggal (kolom) ---
 	for i, d := range dates {
 		col := 2 + i // B=2
-		// Coba ganti pada baris 1..6 (umumnya header di baris atas)
-		for r := 1; r <= 6; r++ {
+		// Cakup header 07.00 & 10.00 (default 12 baris; bisa diubah dengan -headerRows)
+		for r := 1; r <= *headerRowsFlag; r++ {
 			addr := cell(col, r)
 			val, _ := f.GetCellValue(sheet, addr)
 			if strings.Contains(val, "{") {
